@@ -22,6 +22,13 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-07-15',
 
+  nitro: {
+    // Workaround für Nuxt 4.6.0 unter Windows (SSR-500 „Either manifest or precomputed
+    // data must be provided“), siehe https://github.com/nuxt/nuxt/issues/36467
+    // Kann entfernt werden, sobald ein Nuxt-Release den Fix enthält.
+    externals: { inline: [/[\\/]node_modules[\\/]nuxt[\\/]dist[\\/]/] },
+  },
+
   typescript: {
     strict: true,
   },

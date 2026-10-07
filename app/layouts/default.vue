@@ -1,5 +1,11 @@
 <script setup lang="ts">
 const favorites = useFavoritesStore()
+const auth = useAuthStore()
+
+async function logout() {
+  auth.logout()
+  await navigateTo('/')
+}
 </script>
 
 <template>
@@ -20,6 +26,22 @@ const favorites = useFavoritesStore()
         </NuxtLink>
         <NuxtLink to="/favorites">
           Favoriten ({{ favorites.count }})
+        </NuxtLink>
+        <template v-if="auth.isLoggedIn">
+          <span class="user">{{ auth.user?.firstName }}</span>
+          <button
+            type="button"
+            class="link"
+            @click="logout"
+          >
+            Logout
+          </button>
+        </template>
+        <NuxtLink
+          v-else
+          to="/login"
+        >
+          Login
         </NuxtLink>
       </nav>
     </header>
@@ -50,6 +72,20 @@ const favorites = useFavoritesStore()
 .brand {
   margin-right: auto;
   font-weight: 700;
+}
+
+.user {
+  color: var(--color-muted);
+}
+
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .main {

@@ -49,12 +49,16 @@ app/
 ├── pages/                  # Dateibasiertes Routing
 │   ├── index.vue           # /
 │   ├── favorites.vue       # /favorites
+│   ├── login.vue           # /login
 │   └── posts/
 │       ├── index.vue       # /posts?page=2
 │       ├── [id].vue        # /posts/42
-│       └── new.vue         # /posts/new
-├── plugins/api.ts          # $api: baseURL, Auth-Header, Fehlerbehandlung
-├── stores/favorites.ts     # Pinia-Store (auto-importiert)
+│       └── new.vue         # /posts/new (Login erforderlich)
+├── middleware/auth.ts      # Route-Schutz für eingeloggte User
+├── plugins/api.ts          # $api: baseURL, x-api-key-Header, 401-Handling
+├── stores/
+│   ├── auth.ts             # Login-Zustand + API-Key
+│   └── favorites.ts        # Pinia-Store (auto-importiert)
 └── types/api.ts            # API-Typen
 ```
 
@@ -88,8 +92,44 @@ export function useUserList(page: MaybeRefOrGetter<number>) {
 }
 ```
 
-Ist ein Token im Cookie `auth_token` gesetzt, sendet `$api` es automatisch als
-`Authorization: Bearer …`; bei `401` wird es entfernt (siehe `app/plugins/api.ts`).
+### Login & API-Key (`x-api-key`)
+
+Nach dem Login wird der API-Key **automatisch bei jedem Request** als Header
+`x-api-key` mitgeschickt, egal ob über `useApi`, `$api` oder einen Pinia-Store
+und egal ob im Browser oder beim SSR. Im Code muss nichts manuell gesetzt werden.
+
+```
+Login-Formular ──► authStore.login() ──► POST /auth/login
+                                         │
+                       apiKey im Cookie ◄┘
+                              │
+jeder $api-/useApi-Request ──► onRequest-Hook ──► Header  x-api-key: <key>
+```
+
+| Datei                    | Aufgabe                                                                 |
+| ------------------------ | ----------------------------------------------------------------------- |
+| `app/stores/auth.ts`     | `login()`, `logout()`, `isLoggedIn`, `user` und `requestHeaders`        |
+| `app/plugins/api.ts`     | Hängt `requestHeaders` an jeden Request; bei `401` Logout + Weiterleitung zum Login |
+| `app/middleware/auth.ts` | Schützt Seiten: `definePageMeta({ middleware: 'auth' })`                |
+| `app/pages/login.vue`    | Login-Formular inkl. Rücksprung (`/login?redirect=/posts/new`)          |
+
+**Anpassen an die eigene API:**
+
+- **Login-Antwort:** In `login()` (`app/stores/auth.ts`) festlegen, aus welchem
+  Feld der Key kommt. DummyJSON liefert `accessToken`, der Demo-Login lautet
+  `emilys` / `emilyspass`.
+- **Header-Name:** `runtimeConfig.public.apiKeyHeader` bzw. die Umgebungsvariable
+  `NUXT_PUBLIC_API_KEY_HEADER`. Standard ist `x-api-key`.
+- **Weitere Standard-Parameter:** im Computed `requestHeaders` ergänzen, z. B.
+  einen Mandanten- oder Sprach-Header. Alles dort wird automatisch mitgesendet.
+- **Einzelfall überschreiben:** Header, die beim Aufruf explizit gesetzt werden,
+  haben Vorrang:
+  `$api('/x', { headers: { 'x-api-key': 'anderer-key' } })`
+
+> **Sicherheitshinweis:** Der Key liegt in einem für JavaScript lesbaren Cookie
+> (nötig, damit Browser und SSR ihn mitsenden können). Für sensible Keys ist ein
+> serverseitiger Proxy (Nitro-Route unter `server/api/`) mit `httpOnly`-Cookie
+> die sicherere Variante.
 
 ## Paging
 

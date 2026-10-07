@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { NewPost, Post } from '~/types/api'
 
+definePageMeta({ middleware: 'auth' })
+
 useSeoMeta({ title: 'Neuer Post' })
 
 const postsService = usePostsService()

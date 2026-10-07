@@ -17,6 +17,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: 'https://dummyjson.com',
+      // Header, in dem der API-Key nach dem Login mitgeschickt wird
+      apiKeyHeader: 'x-api-key',
     },
   },
 
